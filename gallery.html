@@ -53,6 +53,7 @@
       <a href="index.html"><img id="desktop-logo" src="logo_black.png" alt="AIR Lab Logo" class="w-full h-full object-cover" /></a>
     </div>
     <div class="flex items-center space-x-8 pl-12">
+      <a href="about.html" class="hover:text-gray-600 transition">About</a>
       <a href="teams.html" class="hover:text-gray-600 transition">Teams</a>
       <a href="gallery.html" class="hover:text-gray-600 transition">Gallery</a>
       <a href="news.html" class="hover:text-gray-600 transition">News</a>
@@ -95,6 +96,7 @@
   </nav>
   <div id="mobile-menu" class="hidden md:hidden fixed top-20 left-4 right-4 z-40 bg-navlight text-black rounded-2xl py-4 shadow-lg border border-gray-800 theme-transition">
     <div class="flex flex-col space-y-1">
+      <a href="about.html" class="px-5 py-3 hover:bg-gray-100 transition mobile-link">About</a>
       <a href="teams.html" class="px-5 py-3 hover:bg-gray-100 transition mobile-link">Teams</a>
       <a href="gallery.html" class="px-5 py-3 hover:bg-gray-100 transition mobile-link">Gallery</a>
       <a href="news.html" class="px-5 py-3 hover:bg-gray-100 transition mobile-link">News</a>
@@ -184,8 +186,8 @@
     // ═══════════════════════════════════════════════════
     // ▶▶▶  REPLACE THESE WITH YOUR GITHUB DETAILS  ◀◀◀
     // ═══════════════════════════════════════════════════
-    const GITHUB_OWNER = 'bae-air-lab';   // e.g. 'airlab-ncsu'
-    const GITHUB_REPO  = 'website-airlab';         // e.g. 'airlab-website'
+    const GITHUB_OWNER = 'bae-air-lab';   // e.g. 'bae-air-lab'
+    const GITHUB_REPO  = 'website-airlab';         // e.g. 'website-airlab'
     const GITHUB_BRANCH = 'main';                  // or 'gh-pages' if using that branch
     // ═══════════════════════════════════════════════════
 
@@ -262,6 +264,14 @@
     document.querySelectorAll('.mobile-link').forEach(l => l.addEventListener('click', () => setMobileMenu(false)));
     document.addEventListener('pointerdown', (e) => { if (mobileOpen && !mobileMenu.contains(e.target) && !e.target.closest('.mobile-menu-button')) setMobileMenu(false); });
 
+    // ── Caption from filename ──
+    function captionFromFilename(name) {
+      return name
+        .replace(/\.[^.]+$/, '')       // strip extension
+        .replace(/[-_]+/g, ' ')        // dashes/underscores → spaces
+        .replace(/\b\w/g, c => c.toUpperCase()); // title-case
+    }
+
     // ── Zoom icon SVG ──
     const zoomSvg = `<svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"/></svg>`;
 
@@ -272,17 +282,21 @@
 
       for (let i = startIndex; i < end; i++) {
         const img = allImages[i];
+        const caption = captionFromFilename(img);
         const item = document.createElement('div');
         item.className = 'masonry-item';
         item.innerHTML = `
           <div class="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer img-wrapper" data-index="${i}">
-            <img src="images/gallery/${img}" alt="AIR Lab Gallery"
+            <img src="images/gallery/${img}" alt="${caption}"
                  class="w-full object-cover rounded-2xl loading"
                  loading="lazy"
                  onload="this.classList.remove('loading');this.classList.add('loaded');" />
-            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <div class="bg-black/60 backdrop-blur-sm rounded-full p-4">${zoomSvg}</div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 px-4 py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0 pointer-events-none" style="transition: opacity .3s, transform .3s;">
+              <p class="text-white text-sm font-medium truncate drop-shadow-lg">${caption}</p>
             </div>
           </div>
         `;
@@ -364,10 +378,10 @@
       if (e.key === 'ArrowRight') goToNext();
     });
 
-    //Testing
     // ── Fetch images from GitHub API ──
     async function fetchGalleryImages() {
       const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/images/gallery?ref=${GITHUB_BRANCH}`;
+
       try {
         const res = await fetch(apiUrl);
         if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);

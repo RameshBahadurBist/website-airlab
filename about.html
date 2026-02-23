@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About - AIR Lab • NCSU</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{gold:'#ba9731',navlight:'#DBE9F4'}}}}</script>
+  <style>
+    .theme-transition{transition:background-color .3s,color .3s}
+    .dropdown-enter{animation:dropIn .15s ease-out}
+    @keyframes dropIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    .fade-in{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+    .fade-in.visible{opacity:1;transform:translateY(0)}
+    .pi-image{transition:transform .5s ease,box-shadow .5s ease}
+    .pi-image:hover{transform:scale(1.03);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  </style>
+</head>
+<body class="m-0 p-0">
+
+  <!-- ═══════════════ NAVBAR ═══════════════ -->
+  <nav id="desktop-nav" class="hidden md:flex fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-navlight text-black rounded-full py-3 px-7 items-center space-x-6 shadow-lg theme-transition">
+    <div class="w-12 h-6 relative overflow-hidden flex-shrink-0"><a href="index.html"><img id="desktop-logo" src="logo_black.png" alt="AIR Lab Logo" class="w-full h-full object-cover"/></a></div>
+    <div class="flex items-center space-x-8 pl-12">
+      <a href="about.html" class="hover:text-gray-600 transition">About</a>
+      <a href="teams.html" class="hover:text-gray-600 transition">Teams</a>
+      <a href="gallery.html" class="hover:text-gray-600 transition">Gallery</a>
+      <a href="news.html" class="hover:text-gray-600 transition">News</a>
+      <div class="relative" id="desktop-dropdown-wrapper">
+        <button type="button" id="desktop-dropdown-btn" class="flex items-center cursor-pointer gap-1 hover:text-gray-600 transition focus:outline-none">Research<svg id="desktop-chevron" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button>
+        <div id="desktop-dropdown" class="hidden dropdown-enter absolute left-0 mt-4 w-56 rounded-xl bg-navlight text-black shadow-xl border border-gray-800 overflow-hidden">
+          <a href="publications.html" class="block px-5 py-3 hover:bg-gray-100 transition">Publications</a>
+          <a href="patents.html" class="block px-5 py-3 hover:bg-gray-100 transition">Patents</a>
+          <a href="projects.html" class="block px-5 py-3 hover:bg-gray-100 transition">Projects</a>
+          <a href="acknowledgement.html" class="block px-5 py-3 hover:bg-gray-100 transition">Acknowledgements</a>
+          <a href="opportunities.html" class="block px-5 py-3 hover:bg-gray-100 transition">Opportunities</a>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <a href="contacts.html" class="border border-gray-600 p-1 rounded-md"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
+        <a href="contacts.html" class="border border-gray-600 p-1 rounded-md"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 5.44-1.54 5.44-7A5.44 5.44 0 0 0 19 4.77 5.07 5.07 0 0 0 18.91 1S17.73.65 15 2.48a13.38 13.38 0 0 0-7 0C5.27.65 4.09 1 4.09 1A5.07 5.07 0 0 0 4 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 2.3 6.61 5.44 7A3.37 3.37 0 0 0 7 18.13V22"/></svg></a>
+      </div>
+      <button id="theme-toggle-desktop" class="cursor-pointer" aria-label="Toggle theme">
+        <svg id="sun-icon-desktop" class="w-6 h-6 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg id="moon-icon-desktop" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </nav>
+  <!-- Mobile Nav -->
+  <nav id="mobile-nav" class="md:hidden fixed top-4 left-4 right-4 z-50 bg-navlight text-black rounded-full py-3 px-5 flex items-center justify-between shadow-lg theme-transition">
+    <div class="w-10 h-5 relative overflow-hidden"><a href="index.html"><img id="mobile-logo" src="logo_black.png" alt="AIR Lab Logo" class="w-full h-full object-cover"/></a></div>
+    <button type="button" id="mobile-menu-btn" class="mobile-menu-button cursor-pointer p-1" aria-label="Toggle menu">
+      <svg id="menu-icon" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      <svg id="close-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </nav>
+  <div id="mobile-menu" class="hidden md:hidden fixed top-20 left-4 right-4 z-40 bg-navlight text-black rounded-2xl py-4 shadow-lg border border-gray-800 theme-transition">
+    <div class="flex flex-col space-y-1">
+      <a href="teams.html" class="px-5 py-3 hover:bg-gray-100 transition mobile-link">Teams</a>
+      <a href="gallery.html" class="px-5 py-3 hover:bg-gray-100 transition mobile-link">Gallery</a>
+      <a href="news.html" class="px-5 py-3 hover:bg-gray-100 transition mobile-link">News</a>
+      <div>
+        <button type="button" id="mobile-research-btn" class="w-full text-left px-5 py-3 flex items-center justify-between hover:bg-gray-100 transition">Research<svg id="mobile-chevron" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button>
+        <div id="mobile-research-links" class="hidden pl-4">
+          <a href="publications.html" class="block px-5 py-3 hover:bg-gray-100 transition mobile-link">Publications</a>
+          <a href="patents.html" class="block px-5 py-3 hover:bg-gray-100 transition mobile-link">Patents</a>
+          <a href="projects.html" class="block px-5 py-3 hover:bg-gray-100 transition mobile-link">Projects</a>
+          <a href="acknowledgement.html" class="block px-5 py-3 hover:bg-gray-100 transition mobile-link">Acknowledgements</a>
+          <a href="opportunities.html" class="block px-5 py-3 hover:bg-gray-100 transition mobile-link">Opportunities</a>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3 px-5 py-3">
+        <a href="contacts.html" class="border border-gray-600 p-1 rounded-md"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
+        <a href="contacts.html" class="border border-gray-600 p-1 rounded-md"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 5.44-1.54 5.44-7A5.44 5.44 0 0 0 19 4.77 5.07 5.07 0 0 0 18.91 1S17.73.65 15 2.48a13.38 13.38 0 0 0-7 0C5.27.65 4.09 1 4.09 1A5.07 5.07 0 0 0 4 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 2.3 6.61 5.44 7A3.37 3.37 0 0 0 7 18.13V22"/></svg></a>
+        <button type="button" id="theme-toggle-mobile" class="border border-gray-600 p-1 rounded-md ml-auto" aria-label="Toggle theme">
+          <svg id="sun-icon-mobile" class="w-5 h-5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <svg id="moon-icon-mobile" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+  <div id="page-wrapper" class="min-h-screen bg-black theme-transition">
+
+    <!-- ────── HERO SECTION ────── -->
+    <section class="pt-32 md:pt-40 pb-16 md:pb-24 px-6">
+      <div class="max-w-5xl mx-auto text-center">
+        <p class="text-gold text-sm font-semibold tracking-widest uppercase mb-4 fade-in">Department of Biological &amp; Agricultural Engineering</p>
+        <p id="hero-sub" class="text-lg md:text-xl text-white/80 max-w-3xl mx-auto mb-8 fade-in">
+          College of Agriculture and Life Sciences, North Carolina State University
+        </p>
+        <div class="flex flex-wrap justify-center gap-4 fade-in">
+          <a href="teams.html" class="px-8 py-3 bg-gold text-black font-semibold rounded-full hover:bg-yellow-600 transition-all duration-300">Meet the Team</a>
+          <a href="opportunities.html" class="px-8 py-3 border border-white/40 text-white rounded-full hover:bg-white/10 transition-all duration-300">Join Us</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── ABOUT THE LAB ────── -->
+    <section class="py-8 md:py-12 px-6">
+      <div class="max-w-5xl mx-auto fade-in">
+        <div class="text-center mb-12">
+          <h2 id="about-heading" class="text-3xl md:text-4xl font-bold text-white mb-4">About <span class="text-gold">AIR Lab</span></h2>
+          <div class="w-20 h-1 bg-gold mx-auto rounded-full"></div>
+        </div>
+        <p id="about-p1" class="text-white/85 text-lg leading-relaxed text-center max-w-4xl mx-auto mb-8">
+          At the Artificial Intelligence and Robotics (AIR) Lab, we use AI, robotics, and innovative technologies to drive innovation in precision livestock farming and sustainable agriculture. We combine machine learning, automation, sensing technologies, and data-driven solutions to improve animal health, welfare, food quality, and environmental outcomes.
+        </p>
+      </div>
+    </section>
+
+    <!-- ────── RESEARCH INTERESTS & WHAT WE WORK ON ────── -->
+    <section class="py-12 md:py-16 px-6">
+      <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 lg:gap-20">
+        <!-- Research Interests -->
+        <div class="fade-in">
+          <div class="flex items-center gap-3 mb-8">
+            <div id="ri-icon-border" class="p-2 border border-white/30 rounded-lg">
+              <!-- Lightbulb icon -->
+              <svg class="w-6 h-6 text-gold" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.73V17h8v-2.27A7 7 0 0 0 12 2z"/></svg>
+            </div>
+            <h3 id="ri-title" class="text-2xl font-bold text-white">Our Research Interests</h3>
+          </div>
+          <ul id="ri-list" class="space-y-4">
+            <li class="flex items-start gap-3 text-white/85">
+              <svg class="w-5 h-5 text-gold mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              <span>Artificial intelligence (AI) and predictive analytics</span>
+            </li>
+            <li class="flex items-start gap-3 text-white/85">
+              <svg class="w-5 h-5 text-gold mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              <span>Robotics, UGV, and UAV automation</span>
+            </li>
+            <li class="flex items-start gap-3 text-white/85">
+              <svg class="w-5 h-5 text-gold mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              <span>Computer vision, sensors, and IoT technology</span>
+            </li>
+            <li class="flex items-start gap-3 text-white/85">
+              <svg class="w-5 h-5 text-gold mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              <span>Animal behavior, welfare, food safety, and sustainability</span>
+            </li>
+            <li class="flex items-start gap-3 text-white/85">
+              <svg class="w-5 h-5 text-gold mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              <span>Air quality, greenhouse gas emissions, and disease prevention</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- What We Work On -->
+        <div class="fade-in">
+          <div class="flex items-center gap-3 mb-8">
+            <div id="ww-icon-border" class="p-2 border border-white/30 rounded-lg">
+              <!-- Wrench/cog icon -->
+              <svg class="w-6 h-6 text-gold" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </div>
+            <h3 id="ww-title" class="text-2xl font-bold text-white">What We Work On</h3>
+          </div>
+          <ul id="ww-list" class="space-y-4">
+            <li class="flex items-start gap-3 text-white/85">
+              <svg class="w-5 h-5 text-gold mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <span>Artificial intelligence and robotics</span>
+            </li>
+            <li class="flex items-start gap-3 text-white/85">
+              <svg class="w-5 h-5 text-gold mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <span>Computer vision and sensor technologies</span>
+            </li>
+            <li class="flex items-start gap-3 text-white/85">
+              <svg class="w-5 h-5 text-gold mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <span>Health monitoring for poultry, cattle, and swine</span>
+            </li>
+            <li class="flex items-start gap-3 text-white/85">
+              <svg class="w-5 h-5 text-gold mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <span>Real-time animal behavior and welfare monitoring</span>
+            </li>
+            <li class="flex items-start gap-3 text-white/85">
+              <svg class="w-5 h-5 text-gold mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <span>Automation in poultry and livestock research and processing</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── CTA SECTION ────── -->
+    <section class="py-16 md:py-24 px-6">
+      <div id="cta-card" class="max-w-4xl mx-auto text-center border border-white/20 rounded-2xl p-10 md:p-16 fade-in">
+        <h2 id="cta-title" class="text-3xl md:text-4xl font-bold text-white mb-4">Interested in <span class="text-gold">Joining</span>?</h2>
+        <p id="cta-sub" class="text-white/70 mb-8 max-w-xl mx-auto">We are excited to lead innovation at the intersection of livestock, technology, and sustainability. If you are interested in joining our lab, please submit the Google Form below.</p>
+        <div class="flex flex-wrap justify-center gap-4">
+          <a href="https://forms.gle/rHrampBHtYHuyKp6A" target="_blank" rel="noopener noreferrer" class="px-8 py-3 bg-gold text-black font-semibold rounded-full hover:bg-yellow-600 transition-all duration-300">Apply via Google Form</a>
+          <a href="opportunities.html" class="px-8 py-3 border border-white/40 text-white rounded-full hover:bg-white/10 transition-all duration-300">View Open Positions</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── FOOTER ────── -->
+    <footer class="py-8 px-6">
+      <div id="footer-border" class="max-w-5xl mx-auto border-t border-white/15 pt-8 text-center">
+        <p id="footer-text" class="text-sm text-white/50">AIR Lab &bull; Department of Biological &amp; Agricultural Engineering &bull; NC State University</p>
+      </div>
+    </footer>
+
+  </div><!-- /page-wrapper -->
+
+  <!-- ═══════════════ SCRIPTS ═══════════════ -->
+  <script>
+    let isDarkMode = false;
+
+    function applyTheme() {
+      const w = document.getElementById('page-wrapper');
+      w.classList.remove('bg-black','bg-white');
+      w.classList.add(isDarkMode ? 'bg-white' : 'bg-black');
+
+      // Navbar
+      const nc = isDarkMode
+        ? { bg:'bg-black', text:'text-white', shadow:'shadow-md', logo:'logo_white.png' }
+        : { bg:'bg-navlight', text:'text-black', shadow:'shadow-lg', logo:'logo_black.png' };
+      ['desktop-nav','mobile-nav','mobile-menu'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove('bg-navlight','bg-black','text-black','text-white','shadow-lg','shadow-md');
+        el.classList.add(nc.bg, nc.text, nc.shadow);
+      });
+      const dd = document.getElementById('desktop-dropdown');
+      dd.classList.remove('bg-navlight','bg-black','text-black','text-white');
+      dd.classList.add(nc.bg, nc.text);
+      document.getElementById('desktop-logo').src = nc.logo;
+      document.getElementById('mobile-logo').src = nc.logo;
+      document.getElementById('sun-icon-desktop').classList.toggle('hidden', !isDarkMode);
+      document.getElementById('moon-icon-desktop').classList.toggle('hidden', isDarkMode);
+      document.getElementById('sun-icon-mobile').classList.toggle('hidden', !isDarkMode);
+      document.getElementById('moon-icon-mobile').classList.toggle('hidden', isDarkMode);
+
+      // Page text colours
+      const tc = isDarkMode ? 'text-black' : 'text-white';
+      const tcOpp = isDarkMode ? 'text-white' : 'text-black';
+      const opac = isDarkMode ? 'text-black/85' : 'text-white/85';
+      const opac70 = isDarkMode ? 'text-black/70' : 'text-white/70';
+      const opac50 = isDarkMode ? 'text-black/50' : 'text-white/50';
+      const bc = isDarkMode ? 'border-black/20' : 'border-white/20';
+      const bcOpp = isDarkMode ? 'border-white/20' : 'border-black/20';
+
+      // Hero
+      ['hero-title','about-heading','roadmap-title','pi-heading','cta-title'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove('text-white','text-black');
+        el.classList.add(tc);
+      });
+      ['hero-sub','roadmap-sub','cta-sub'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove('text-white/80','text-black/80','text-white/70','text-black/70');
+        el.classList.add(opac70);
+      });
+      ['about-p1','pi-bio-1','pi-bio-2','pi-bio-3','pi-bio-4'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove('text-white/85','text-black/85');
+        el.classList.add(opac);
+      });
+      ['pi-name','ri-title','ww-title'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove('text-white','text-black');
+        el.classList.add(tc);
+      });
+      document.getElementById('pi-role').classList.remove('text-white','text-black'); // stays gold
+
+      // Lists
+      document.querySelectorAll('#ri-list li, #ww-list li').forEach(li => {
+        li.classList.remove('text-white/85','text-black/85');
+        li.classList.add(opac);
+      });
+
+      // Borders
+      ['ri-icon-border','ww-icon-border','roadmap-border','cta-card','pi-contact-card'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove('border-white/30','border-black/30','border-white/20','border-black/20');
+        el.classList.add(bc.replace('/20','/30'));
+      });
+
+      // Contact card text
+      document.querySelectorAll('#pi-contact-card a, #pi-contact-card span').forEach(el => {
+        el.closest('.flex')?.classList.remove('text-white/85','text-black/85');
+        el.closest('.flex')?.classList.add(opac);
+      });
+
+      // Footer
+      const ft = document.getElementById('footer-text');
+      ft.classList.remove('text-white/50','text-black/50');
+      ft.classList.add(opac50);
+      const fb = document.getElementById('footer-border');
+      fb.classList.remove('border-white/15','border-black/15');
+      fb.classList.add(isDarkMode ? 'border-black/15' : 'border-white/15');
+    }
+
+    function toggleTheme() { isDarkMode = !isDarkMode; applyTheme(); }
+    document.getElementById('theme-toggle-desktop').addEventListener('click', toggleTheme);
+    document.getElementById('theme-toggle-mobile').addEventListener('click', toggleTheme);
+
+    // ── Navbar dropdown logic ──
+    const ddBtn = document.getElementById('desktop-dropdown-btn');
+    const ddEl = document.getElementById('desktop-dropdown');
+    const ddC = document.getElementById('desktop-chevron');
+    ddBtn.addEventListener('click', () => {
+      const open = !ddEl.classList.contains('hidden');
+      ddEl.classList.toggle('hidden');
+      ddC.classList.toggle('rotate-180', !open);
+    });
+    document.addEventListener('pointerdown', e => {
+      if (!document.getElementById('desktop-dropdown-wrapper').contains(e.target)) {
+        ddEl.classList.add('hidden');
+        ddC.classList.remove('rotate-180');
+      }
+    });
+
+    // ── Mobile menu ──
+    let mobileOpen = false;
+    const mMenu = document.getElementById('mobile-menu');
+    const mIcon = document.getElementById('menu-icon');
+    const cIcon = document.getElementById('close-icon');
+    function setMobile(o) {
+      mobileOpen = o;
+      mMenu.classList.toggle('hidden', !o);
+      mIcon.classList.toggle('hidden', o);
+      cIcon.classList.toggle('hidden', !o);
+      if (!o) {
+        document.getElementById('mobile-research-links').classList.add('hidden');
+        document.getElementById('mobile-chevron').classList.remove('rotate-180');
+      }
+    }
+    document.getElementById('mobile-menu-btn').addEventListener('click', () => setMobile(!mobileOpen));
+    document.getElementById('mobile-research-btn').addEventListener('click', () => {
+      const r = document.getElementById('mobile-research-links');
+      const open = r.classList.contains('hidden');
+      r.classList.toggle('hidden', !open);
+      document.getElementById('mobile-chevron').classList.toggle('rotate-180', open);
+    });
+    document.querySelectorAll('.mobile-link').forEach(l => l.addEventListener('click', () => setMobile(false)));
+    document.addEventListener('pointerdown', e => {
+      if (mobileOpen && !mMenu.contains(e.target) && !e.target.closest('.mobile-menu-button')) setMobile(false);
+    });
+
+    // ── Scroll fade-in ──
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // Init
+    applyTheme();
+  </script>
+</body>
+</html>
