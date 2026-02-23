@@ -263,17 +263,39 @@
               <h2 class="text-3xl font-bold ${tc}">${year}</h2>
             </div>
             <div class="space-y-8">
-              ${grouped[year].map(pub => `
-                <div class="group border-l-4 ${bc} pl-6 py-2 hover:border-amber-500 transition-colors duration-300">
-                  <h3 class="text-xl font-semibold ${tc} mb-3 leading-relaxed">${esc(pub.title)}</h3>
-                  <div class="space-y-2 mb-4">
-                    <div class="flex items-start gap-2 ${tc}">${svg.users}<p class="text-sm opacity-90">${esc(pub.authors)}</p></div>
-                    <div class="flex items-start gap-2 ${tc}">${svg.book}<p class="text-sm italic opacity-80">${esc(pub.journal)}</p></div>
-                  </div>
-                  ${pub.doi ? `<a href="${pub.doi.startsWith('http') ? esc(pub.doi) : 'https://doi.org/' + esc(pub.doi)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm ${ac} hover:underline transition-colors">${svg.extLink} ${esc(pub.doi)}</a>` : ''}
-                </div>
-              `).join('')}
-            </div>
+  ${grouped[year].map(pub => `
+    <div class="group border-l-4 ${bc} pl-6 py-2 hover:border-amber-500 transition-colors duration-300">
+      <h3 class="text-xl font-semibold ${tc} mb-3 leading-relaxed">
+        ${esc(pub.title)}
+        ${pub.type ? `
+          <span class="ml-2 px-2 rounded-xl text-center text-white text-sm bg-red-500">
+            ${esc(pub.type)}
+          </span>
+        ` : ''}
+      </h3>
+
+      <div class="space-y-2 mb-4">
+        <div class="flex items-start gap-2 ${tc}">
+          ${svg.users}
+          <p class="text-sm opacity-90">${esc(pub.authors)}</p>
+        </div>
+        <div class="flex items-start gap-2 ${tc}">
+          ${svg.book}
+          <p class="text-sm italic opacity-80">${esc(pub.journal)}</p>
+        </div>
+      </div>
+
+      ${pub.doi ? `
+        <a href="${pub.doi.startsWith('http') ? esc(pub.doi) : 'https://doi.org/' + esc(pub.doi)}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="inline-flex items-center gap-2 text-sm ${ac} hover:underline transition-colors">
+          ${svg.extLink} ${esc(pub.doi)}
+        </a>
+      ` : ''}
+    </div>
+  `).join('')}
+</div>
           </div>
         `).join('') + '</div>';
       } else {
@@ -320,7 +342,7 @@
     async function init() {
       try {
         const { data, error } = await supabase.from('publications')
-          .select('year,title,authors,journal,doi')
+          .select('year,title,authors,journal,doi,type')
           .order('year', { ascending: false }).order('title', { ascending: true });
         if (error) throw error;
         allPubs = (data || []).sort((a, b) => b.year - a.year);
