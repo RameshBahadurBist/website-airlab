@@ -45,6 +45,22 @@
       -webkit-box-orient: vertical;
       overflow: hidden
     }
+
+    .line-clamp-3 {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden
+    }
+
+    /* keep anchored projects clear of the fixed navbar */
+    .scroll-anchor {
+      scroll-margin-top: 7rem
+    }
+
+    #project-search::-webkit-search-cancel-button {
+      filter: invert(50%)
+    }
   </style>
 </head>
 
@@ -167,11 +183,106 @@
     <div id="content" class="hidden max-w-6xl mx-auto px-6"></div>
   </div>
 
+  <!-- MEDIA VIEWER -->
+  <div id="pmodal" class="hidden fixed inset-0 z-[60] bg-black/95 flex items-center justify-center p-4 dropdown-enter"
+    role="dialog" aria-modal="true" aria-label="Project media viewer">
+    <button id="pm-close" class="absolute top-4 right-4 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition" aria-label="Close">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <button id="pm-prev" class="absolute left-2 md:left-4 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition" aria-label="Previous">
+      <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button id="pm-next" class="absolute right-2 md:right-4 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition" aria-label="Next">
+      <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+    <div id="pm-counter" class="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-2 rounded-full bg-white/10 backdrop-blur text-white text-sm font-medium"></div>
+    <div class="w-full max-w-5xl flex flex-col items-center gap-3">
+      <div id="pm-stage" class="w-full flex items-center justify-center"></div>
+      <p id="pm-caption" class="text-white/80 text-sm text-center px-4"></p>
+    </div>
+  </div>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     const supabase = createClient('https://yyvndryintsrmkqrdnvb.supabase.co', 'sb_publishable_e3377RLuiVxmKIMW6-jAKA_Zju9KB5Y');
-    let isDarkMode = false, allProjects = [], selectedCategory = 'all', selectedStatus = 'all';
+    // ── UI switches: flip to true when the project list grows ──────
+    const SHOW_SEARCH = false, SHOW_SORT = false, SHOW_CATEGORY_FILTER = false;
+
+    let isDarkMode = false, allProjects = [], selectedCategory = 'all', selectedStatus = 'all', searchTerm = '', sortBy = 'featured';
+    let mediaGroups = {}, mgList = null, mgIndex = 0, searchFocus = false;
     const esc = s => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+    const escAttr = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // keep relative paths working, but drop javascript:/data:/other schemes
+    const safeUrl = u => {
+      const s = String(u == null ? '' : u).trim();
+      return /^[a-z][a-z0-9+.-]*:/i.test(s) && !/^(https?|mailto):/i.test(s) ? '' : s;
+    };
+
+    // ── Video helpers ──────────────────────────────────────────────
+    const ytId = u => { const m = String(u || '').match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : null; };
+    const ytStart = u => { const m = String(u || '').match(/[?&#]t=(\d+)/); return m ? m[1] : null; };
+    const vimeoId = u => { const m = String(u || '').match(/vimeo\.com\/(?:video\/)?(\d+)/); return m ? m[1] : null; };
+    const isVideoFile = u => /\.(mp4|webm|ogg|ogv|mov|m4v)(\?.*)?$/i.test(String(u || ''));
+    const isVideoUrl = u => !!(ytId(u) || vimeoId(u) || isVideoFile(u));
+
+    function normalizeMedia(v, type) {
+      const url = safeUrl(typeof v === 'string' ? v : (v && (v.url || v.src || v.link || v.href)) || '');
+      if (!url) return null;
+      const title = typeof v === 'string' ? '' : ((v && (v.title || v.caption || v.name)) || '');
+      // a URL filed under "images" that is really a video still plays as one
+      return { type: type === 'image' && isVideoUrl(url) ? 'video' : type, url, title };
+    }
+    // images + videos + any video URL that was pasted into the links column
+    function mediaOf(p) {
+      const out = [], seen = new Set();
+      const push = m => { if (m && !seen.has(m.url)) { seen.add(m.url); out.push(m); } };
+      (p.images || []).forEach(v => push(normalizeMedia(v, 'image')));
+      (p.videos || []).forEach(v => push(normalizeMedia(v, 'video')));
+      (p.links || []).forEach(l => { const m = normalizeMedia(l, 'video'); if (m && isVideoUrl(m.url)) push(m); });
+      return out;
+    }
+    const thumbUrl = m => {
+      const y = ytId(m.url);
+      if (y) return `https://i.ytimg.com/vi/${y}/hqdefault.jpg`;
+      return m.type === 'image' ? m.url : '';
+    };
+    const yearNum = p => { const m = String(p.year || '').match(/\d{4}/); return m ? +m[0] : 0; };
+
+    // Media whose thumbnail cannot load (dead URL) is dropped, so no empty boxes are shown
+    const probeImage = url => new Promise(res => {
+      const img = new Image();
+      const done = ok => { clearTimeout(t); img.onload = img.onerror = null; res(ok); };
+      const t = setTimeout(() => done(false), 4000);
+      img.onload = () => done(img.naturalWidth > 0);
+      img.onerror = () => done(false);
+      img.src = url;
+    });
+    async function pruneMedia() {
+      await Promise.all(Object.keys(mediaGroups).map(async pid => {
+        const list = mediaGroups[pid];
+        const keep = await Promise.all(list.map(m => {
+          const t = thumbUrl(m);
+          if (t) return probeImage(t);
+          return Promise.resolve(isVideoFile(m.url) || !!vimeoId(m.url)); // playable even without a thumbnail
+        }));
+        mediaGroups[pid] = list.filter((_, i) => keep[i]);
+      }));
+    }
+
+    // links come back either as an array of {name,url} or as an object like {github: "..."}
+    const LINK_LABELS = { github: 'GitHub', arxiv: 'arXiv', youtube: 'YouTube', doi: 'DOI', pdf: 'PDF', paper: 'Paper', demo: 'Demo', website: 'Website' };
+    // keys in the Supabase links object that should not be shown as buttons
+    const HIDDEN_LINK_KEYS = ['lab_page', 'official_page'];
+    const prettyKey = k => LINK_LABELS[String(k).toLowerCase()] || String(k).replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    function normLinks(v) {
+      let out = [];
+      if (Array.isArray(v)) out = v.filter(Boolean).map(l => typeof l === 'string' ? { name: 'Link', url: l } : { name: l.name || l.title || l.label || 'Link', url: l.url || l.href || l.link || '' });
+      else if (v && typeof v === 'object') out = Object.entries(v)
+        .filter(([k]) => !HIDDEN_LINK_KEYS.includes(String(k).toLowerCase()))
+        .map(([k, u]) => ({ name: prettyKey(k), url: typeof u === 'string' ? u : (u && (u.url || u.href)) || '' }));
+      else if (typeof v === 'string' && v.trim()) out = [{ name: 'Link', url: v.trim() }];
+      return out.filter(l => safeUrl(l.url));
+    }
     const ic = {
       code: `<svg class="w-16 h-16 opacity-30" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>`,
       codeSm: `<svg class="w-4 h-4 opacity-60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>`,
@@ -186,7 +297,56 @@
       videoBig: `<svg class="w-8 h-8 opacity-20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
       play: `<svg class="w-5 h-5 opacity-60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
       extLink: `<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>`,
+      search: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>`,
+      playFill: `<svg class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><polygon points="6 3 21 12 6 21 6 3"/></svg>`,
+      arrowDown: `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>`,
     };
+
+    // ── Media viewer ───────────────────────────────────────────────
+    const pm = document.getElementById('pmodal'), pmStage = document.getElementById('pm-stage'),
+      pmCounter = document.getElementById('pm-counter'), pmCaption = document.getElementById('pm-caption'),
+      pmPrev = document.getElementById('pm-prev'), pmNext = document.getElementById('pm-next');
+
+    function stageHtml(m) {
+      const y = ytId(m.url), v = vimeoId(m.url), frame = 'w-full aspect-video max-h-[80vh] rounded-xl overflow-hidden bg-black';
+      const allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+      if (y) { const t = ytStart(m.url); return `<div class="${frame}"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${escAttr(y)}?autoplay=1&rel=0&modestbranding=1${t ? '&start=' + escAttr(t) : ''}" title="${escAttr(m.title || 'Project video')}" frameborder="0" allow="${allow}" allowfullscreen></iframe></div>`; }
+      if (v) return `<div class="${frame}"><iframe class="w-full h-full" src="https://player.vimeo.com/video/${escAttr(v)}?autoplay=1" title="${escAttr(m.title || 'Project video')}" frameborder="0" allow="${allow}" allowfullscreen></iframe></div>`;
+      if (isVideoFile(m.url)) return `<video class="max-h-[80vh] w-full rounded-xl bg-black" src="${escAttr(m.url)}" controls autoplay playsinline></video>`;
+      if (m.type === 'image') return `<img src="${escAttr(m.url)}" alt="${escAttr(m.title || 'Project image')}" class="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl"/>`;
+      return `<a href="${escAttr(m.url)}" target="_blank" rel="noopener noreferrer" class="px-6 py-3 rounded-full border border-white/40 text-white hover:bg-white hover:text-black transition">Open media in a new tab</a>`;
+    }
+
+    function showMedia() {
+      const m = mgList[mgIndex];
+      pmStage.innerHTML = stageHtml(m);
+      pmCaption.textContent = m.title || '';
+      pmCounter.textContent = `${mgIndex + 1} / ${mgList.length}`;
+      const multi = mgList.length > 1;
+      pmPrev.classList.toggle('hidden', !multi); pmNext.classList.toggle('hidden', !multi);
+      pmCounter.classList.toggle('hidden', !multi);
+    }
+    function openMedia(pid, idx) {
+      const list = mediaGroups[pid]; if (!list || !list.length) return;
+      mgList = list; mgIndex = Math.min(Math.max(idx, 0), list.length - 1);
+      pm.classList.remove('hidden'); document.body.style.overflow = 'hidden';
+      showMedia();
+    }
+    function closeMedia() {
+      pm.classList.add('hidden'); pmStage.innerHTML = ''; // clearing the stage stops playback
+      document.body.style.overflow = ''; mgList = null;
+    }
+    function stepMedia(d) { if (!mgList) return; mgIndex = (mgIndex + d + mgList.length) % mgList.length; showMedia(); }
+    document.getElementById('pm-close').addEventListener('click', closeMedia);
+    pmPrev.addEventListener('click', () => stepMedia(-1));
+    pmNext.addEventListener('click', () => stepMedia(1));
+    pm.addEventListener('click', e => { if (e.target === pm) closeMedia(); });
+    document.addEventListener('keydown', e => {
+      if (pm.classList.contains('hidden')) return;
+      if (e.key === 'Escape') closeMedia();
+      else if (e.key === 'ArrowLeft') stepMedia(-1);
+      else if (e.key === 'ArrowRight') stepMedia(1);
+    });
 
     // Theme
     function applyTheme() {
@@ -224,80 +384,171 @@
       }
 
       const categories = ['all', ...new Set(allProjects.map(p => p.category).filter(Boolean))];
-      const statuses = ['all', 'active', 'completed', 'upcoming'];
-      const filtered = allProjects.filter(p => (selectedCategory === 'all' || p.category === selectedCategory) && (selectedStatus === 'all' || p.status === selectedStatus));
+      const statuses = ['all', ...new Set(allProjects.map(p => p.status).filter(Boolean))];
+      const q = searchTerm.trim().toLowerCase();
+      const matches = p => !q || [p.title, p.subtitle, p.description, p.category, p.status, p.year, ...(p.technologies || []), ...(p.team || [])]
+        .some(v => String(v || '').toLowerCase().includes(q));
+      let filtered = allProjects.filter(p => (selectedCategory === 'all' || p.category === selectedCategory) && (selectedStatus === 'all' || p.status === selectedStatus) && matches(p));
+      if (sortBy === 'year-desc') filtered = [...filtered].sort((a, b) => yearNum(b) - yearNum(a));
+      else if (sortBy === 'year-asc') filtered = [...filtered].sort((a, b) => yearNum(a) - yearNum(b));
+      else if (sortBy === 'title') filtered = [...filtered].sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
       const featured = allProjects.filter(p => p.featured);
+      const filtersOn = selectedCategory !== 'all' || selectedStatus !== 'all' || !!q;
 
-      // Featured banner
+      // A single media tile: real thumbnail, play badge for videos, opens the viewer
+      const tile = (m, i, pid, extra = '') => {
+        const t = thumbUrl(m), y = ytId(m.url);
+        const inner = t
+          ? `<img src="${escAttr(t)}" alt="${escAttr(m.title || (m.type === 'video' ? 'Video thumbnail' : 'Project image'))}" loading="lazy" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover/media:scale-105" onerror="this.style.display='none'"/>`
+          : isVideoFile(m.url)
+            ? `<video src="${escAttr(m.url)}#t=0.1" preload="metadata" muted playsinline class="absolute inset-0 w-full h-full object-cover"></video>`
+            : '';
+        return `<button type="button" data-pid="${escAttr(pid)}" data-idx="${i}" aria-label="${escAttr((m.type === 'video' ? 'Play ' : 'View ') + (m.title || (m.type === 'video' ? 'project video' : 'project image')))}"
+            class="media-open group/media relative block w-full aspect-video rounded-lg overflow-hidden border ${bc} ${cardBg} ${extra} focus:outline-none focus:ring-2 focus:ring-blue-500">
+            ${inner || `<span class="absolute inset-0 flex items-center justify-center ${tc}">${m.type === 'video' ? ic.videoBig : ic.imageBig}</span>`}
+            ${m.type === 'video' ? `<span class="absolute inset-0 flex items-center justify-center"><span class="w-12 h-12 rounded-full bg-black/60 text-white flex items-center justify-center transition-colors group-hover/media:bg-red-600">${ic.playFill}</span></span>` : ''}
+            <span class="absolute top-1.5 right-1.5 px-2 py-0.5 rounded text-[10px] font-medium bg-black/70 text-white">${m.type === 'video' ? (y ? 'YouTube' : 'Video') : 'Image'}</span>
+            ${m.title ? `<span class="absolute bottom-0 left-0 right-0 px-2 py-1.5 text-left text-[11px] text-white bg-gradient-to-t from-black/85 to-transparent truncate">${esc(m.title)}</span>` : ''}
+          </button>`;
+      };
+
+      // Featured banner — cards jump to the full project entry
       let featuredHtml = '';
       if (featured.length) {
-        featuredHtml = `<div class="mb-12 p-8 border ${bc} rounded-xl">
+        featuredHtml = `<div class="mb-12 p-6 md:p-8 border ${bc} rounded-xl">
           <div class="flex items-center gap-2 mb-6"><div class="p-2 border ${bc} rounded-lg ${ac}">${ic.tag}</div><h2 class="text-2xl font-bold ${tc}">Featured Projects</h2></div>
-          <div class="grid md:grid-cols-2 gap-8">${featured.map(p => `
-            <div class="group border ${bc} rounded-lg overflow-hidden hover:border-blue-500 transition-colors duration-300">
-              ${p.images && p.images[0] ? `<div class="relative h-48 overflow-hidden"><img src="${esc(p.images[0])}" alt="${esc(p.title)}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/></div>` : `<div class="h-48 ${cardBg} flex items-center justify-center ${tc}">${ic.cameraBig}</div>`}
+          <div class="grid md:grid-cols-2 gap-8">${featured.map(p => {
+          // prefer a media item that actually has a picture to show
+          const group = mediaGroups[p.id] || [];
+          const cover = group.find(m => thumbUrl(m)) || group[0];
+          const t = cover ? thumbUrl(cover) : '';
+          return `<button type="button" data-goto="${escAttr(p.id)}" class="goto-project text-left group border ${bc} rounded-lg overflow-hidden hover:border-blue-500 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              ${t ? `<div class="relative h-48 ${cardBg} overflow-hidden">
+                <img src="${escAttr(t)}" alt="${escAttr(p.title)}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                ${cover.type === 'video' ? `<span class="absolute inset-0 flex items-center justify-center"><span class="w-14 h-14 rounded-full bg-black/60 text-white flex items-center justify-center transition-colors group-hover:bg-red-600">${ic.playFill}</span></span>` : ''}
+              </div>` : `<div class="relative h-48 ${cardBg} flex items-center justify-center overflow-hidden">
+                <img src="${isDarkMode ? 'logo_black.png' : 'logo_white.png'}" alt="AIR Lab" class="h-16 w-auto object-contain opacity-40 transition-transform duration-500 group-hover:scale-105"/>
+              </div>`}
               <div class="p-6">
-                <div class="flex items-center justify-between mb-3"><span class="px-3 py-1 border ${bc} rounded-full text-xs ${tc}">${esc(p.category)}</span><span class="text-sm ${tc} opacity-70">${esc(p.status)}</span></div>
+                <div class="flex items-center justify-between gap-2 mb-3">${p.category ? `<span class="px-3 py-1 border ${bc} rounded-full text-xs ${tc}">${esc(p.category)}</span>` : '<span></span>'}<span class="text-sm ${tc} opacity-70">${esc(p.status)}</span></div>
                 <h3 class="text-xl font-bold ${tc} mb-2">${esc(p.title)}</h3>
                 <p class="text-sm ${tc} opacity-80 mb-4 line-clamp-2">${esc(p.description)}</p>
-                <div class="flex items-center gap-4"><div class="flex items-center gap-1 ${tc}">${ic.calendar}<span class="text-xs opacity-70">${esc(p.year)}</span></div><div class="flex items-center gap-1 ${tc}">${ic.users}<span class="text-xs opacity-70">${(p.team || []).length}</span></div></div>
+                <div class="flex items-center gap-4"><div class="flex items-center gap-1 ${tc}">${ic.calendar}<span class="text-xs opacity-70">${esc(p.year)}</span></div><div class="flex items-center gap-1 ${tc}">${ic.users}<span class="text-xs opacity-70">${(p.team || []).length}</span></div><span class="ml-auto inline-flex items-center gap-1 text-xs ${ac} opacity-0 group-hover:opacity-100 transition">View project ${ic.arrowDown}</span></div>
               </div>
-            </div>`).join('')}</div></div>`;
+            </button>`;
+        }).join('')}</div></div>`;
       }
 
       // Filters
-      const catBtns = categories.map(cat => `<button data-cat="${esc(cat)}" class="filter-cat px-4 py-2 rounded-full text-sm border transition-colors ${selectedCategory === cat ? ac + ' border-blue-500 bg-blue-500/10' : bc + ' ' + tc + ' opacity-80 hover:opacity-100'}">${cat === 'all' ? 'All Categories' : esc(cat)}</button>`).join('');
-      const statusBtns = statuses.map(s => `<button data-status="${esc(s)}" class="filter-status px-4 py-2 rounded-full text-sm border transition-colors ${selectedStatus === s ? ac + ' border-blue-500 bg-blue-500/10' : bc + ' ' + tc + ' opacity-80 hover:opacity-100'}">${s === 'all' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}</button>`).join('');
+      const chip = on => on ? ac + ' border-blue-500 bg-blue-500/10' : bc + ' ' + tc + ' opacity-80 hover:opacity-100';
+      const catBtns = categories.map(cat => `<button data-cat="${escAttr(cat)}" class="filter-cat px-4 py-2 rounded-full text-sm border transition-colors ${chip(selectedCategory === cat)}">${cat === 'all' ? 'All Categories' : esc(cat)}</button>`).join('');
+      const statusBtns = statuses.map(s => `<button data-status="${escAttr(s)}" class="filter-status px-4 py-2 rounded-full text-sm border transition-colors ${chip(selectedStatus === s)}">${s === 'all' ? 'All Status' : esc(s.charAt(0).toUpperCase() + s.slice(1))}</button>`).join('');
 
       // Project list
       let listHtml = filtered.map(p => {
-        const techs = (p.technologies || []).map(t => `<span class="px-3 py-1 border ${bc} rounded-full text-xs ${tc} opacity-80">${esc(t)}</span>`).join('');
-        const team = (p.team || []).map(m => `<p class="text-sm ${tc} opacity-80">${esc(m)}</p>`).join('');
-        const hasMedia = (p.images && p.images.length) || (p.videos && p.videos.length);
+        const techs = (p.technologies || []).map(t => `<span class="px-3 py-1 border ${bc} rounded-full text-xs ${tc} opacity-80">${esc(t)}</span>`).join('') || `<span class="text-sm ${tc} opacity-50">—</span>`;
+        const team = (p.team || []).map(m => `<p class="text-sm ${tc} opacity-80">${esc(m)}</p>`).join('') || `<span class="text-sm ${tc} opacity-50">—</span>`;
+        const media = mediaGroups[p.id] || [];
+        const nImg = media.filter(m => m.type === 'image').length, nVid = media.filter(m => m.type === 'video').length;
         let mediaCount = '';
-        if (p.images && p.images.length) mediaCount += `<div class="flex items-center gap-1 ${tc}">${ic.imageSm}<span class="text-xs opacity-70">${p.images.length} image${p.images.length !== 1 ? 's' : ''}</span></div>`;
-        if (p.videos && p.videos.length) mediaCount += `<div class="flex items-center gap-1 ${tc}">${ic.video}<span class="text-xs opacity-70">${p.videos.length} video${p.videos.length !== 1 ? 's' : ''}</span></div>`;
+        if (nImg) mediaCount += `<div class="flex items-center gap-1 ${tc}">${ic.imageSm}<span class="text-xs opacity-70">${nImg} image${nImg !== 1 ? 's' : ''}</span></div>`;
+        if (nVid) mediaCount += `<div class="flex items-center gap-1 ${tc}">${ic.video}<span class="text-xs opacity-70">${nVid} video${nVid !== 1 ? 's' : ''}</span></div>`;
+        const longDesc = String(p.description || '').length > 320;
 
         let mediaPrev = '';
-        if (hasMedia) {
-          const imgs = (p.images || []).slice(0, 3).map((_, i) => `<div class="relative flex-shrink-0 w-48 h-32 border rounded-lg overflow-hidden border-gray-700"><div class="absolute inset-0 ${cardBg} flex items-center justify-center ${tc}">${ic.imageBig}</div><div class="absolute bottom-2 right-2 px-2 py-1 rounded text-xs ${cardBg} border ${bc} ${tc}">Image</div></div>`).join('');
-          const vids = (p.videos || []).slice(0, 2).map((_, i) => `<div class="relative flex-shrink-0 w-48 h-32 border rounded-lg overflow-hidden border-gray-700"><div class="absolute inset-0 ${cardBg} flex items-center justify-center ${tc}">${ic.videoBig}</div><div class="absolute bottom-2 right-2 px-2 py-1 rounded text-xs ${cardBg} border ${bc} ${tc}">Video</div></div>`).join('');
-          mediaPrev = `<div class="mb-8"><div class="flex items-center gap-2 mb-4 ${tc}">${ic.play}<p class="text-sm font-medium">Project Media</p></div><div class="flex gap-4 overflow-x-auto pb-4">${imgs}${vids}</div></div>`;
+        if (media.length) {
+          const MAX = 8, shown = media.slice(0, MAX), rest = media.length - shown.length;
+          const tiles = shown.map((m, i) => tile(m, i, p.id)).join('');
+          const more = rest > 0 ? `<button type="button" data-pid="${escAttr(p.id)}" data-idx="${MAX}" class="media-open w-full aspect-video rounded-lg border ${bc} ${cardBg} ${tc} text-sm font-medium hover:border-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">+${rest} more</button>` : '';
+          mediaPrev = `<div class="mb-8"><div class="flex items-center gap-2 mb-4 ${tc}">${ic.play}<p class="text-sm font-medium">Project Media</p><span class="text-xs opacity-60">click to ${nVid ? 'play / ' : ''}enlarge</span></div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">${tiles}${more}</div></div>`;
         }
 
-        const links = (p.links || []).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm border ${bc} ${tc} hover:bg-white hover:text-black transition-all duration-300">${ic.extLink} ${esc(l.name)}</a>`).join('');
+        const links = (p.links || []).map(l => {
+          const u = safeUrl(l && l.url); if (!u) return '';
+          const name = (l && l.name) || 'Link';
+          return `<a href="${escAttr(u)}" target="_blank" rel="noopener noreferrer" title="${escAttr(name)}" class="inline-flex items-center gap-2 max-w-full px-4 py-2 rounded-lg text-sm border ${bc} ${tc} hover:bg-white hover:text-black transition-all duration-300">${isVideoUrl(u) ? ic.playFill : ic.extLink}<span class="truncate max-w-[16rem]">${esc(name)}</span></a>`;
+        }).join('');
 
-        return `<div class="group border-l-4 ${bc} pl-6 py-8 hover:border-blue-500 transition-colors duration-300">
-          <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6"><div class="flex-1"><div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-bold ${tc}">${esc(p.title)}</h3><span class="px-3 py-1 border ${bc} rounded-full text-xs ${tc}">${esc(p.status)}</span></div><p class="text-lg ${ac} mb-3">${esc(p.subtitle || '')}</p><p class="text-base ${tc} opacity-90">${esc(p.description)}</p></div><div class="px-4 py-2 border ${bc} rounded-lg"><span class="text-sm font-medium ${tc}">${esc(p.year)}</span></div></div>
-          <div class="grid md:grid-cols-3 gap-6 mb-8"><div><div class="flex items-center gap-2 mb-3 ${tc}">${ic.codeSm}<p class="text-sm font-medium">Technologies</p></div><div class="flex flex-wrap gap-2">${techs}</div></div><div><div class="flex items-center gap-2 mb-3 ${tc}">${ic.users}<p class="text-sm font-medium">Team</p></div><div class="space-y-1">${team}</div></div><div><div class="flex items-center gap-2 mb-3 ${tc}">${ic.camera}<p class="text-sm font-medium">Media</p></div><div class="flex items-center gap-4">${mediaCount}</div></div></div>
+        return `<div id="project-item-${escAttr(p.id)}" class="scroll-anchor group border-l-4 ${bc} pl-6 py-8 hover:border-blue-500 transition-colors duration-300">
+          <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6"><div class="flex-1"><div class="flex flex-wrap items-center gap-3 mb-2"><h3 class="text-2xl font-bold ${tc}">${esc(p.title)}</h3>${p.status ? `<span class="px-3 py-1 border ${bc} rounded-full text-xs ${tc}">${esc(p.status)}</span>` : ''}${p.category ? `<span class="px-3 py-1 border ${bc} rounded-full text-xs ${tc} opacity-80">${esc(p.category)}</span>` : ''}${p.featured ? `<span class="px-3 py-1 rounded-full text-xs text-gold border border-gold/60">Featured</span>` : ''}${nVid ? `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs ${tc} border ${bc}">${ic.video} ${nVid} video${nVid !== 1 ? 's' : ''}</span>` : ''}</div><p class="text-lg ${ac} mb-3">${esc(p.subtitle || '')}</p><p class="desc text-base ${tc} opacity-90${longDesc ? ' line-clamp-3' : ''}">${esc(p.description)}</p>${longDesc ? `<button type="button" class="desc-more mt-2 text-sm ${ac} underline underline-offset-4 hover:opacity-80">Read more</button>` : ''}</div><div class="px-4 py-2 border ${bc} rounded-lg self-start"><span class="text-sm font-medium ${tc}">${esc(p.year)}</span></div></div>
+          <div class="grid ${media.length ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-6 mb-8"><div><div class="flex items-center gap-2 mb-3 ${tc}">${ic.codeSm}<p class="text-sm font-medium">Technologies</p></div><div class="flex flex-wrap gap-2">${techs}</div></div><div><div class="flex items-center gap-2 mb-3 ${tc}">${ic.users}<p class="text-sm font-medium">Team</p></div><div class="space-y-1">${team}</div></div>${media.length ? `<div><div class="flex items-center gap-2 mb-3 ${tc}">${ic.camera}<p class="text-sm font-medium">Media</p></div><div class="flex items-center gap-4">${mediaCount}</div></div>` : ''}</div>
           ${mediaPrev}
           ${links ? `<div class="flex flex-wrap gap-3">${links}</div>` : ''}
         </div>`;
       }).join('');
 
       if (!filtered.length) {
-        listHtml = `<div class="mt-12"><div class="text-center py-16 border ${bc} rounded-xl max-w-2xl mx-auto"><div class="${tc}">${ic.code}</div><h3 class="text-2xl font-bold ${tc} mb-4">No Projects Found</h3><p class="text-lg ${tc} opacity-70 mb-8">No projects match your selected filters</p><button id="clear-filters" class="px-6 py-3 rounded-full text-sm font-medium border ${bc} ${tc} hover:bg-white hover:text-black transition-all duration-300">Clear filters</button></div></div>`;
+        listHtml = `<div class="mt-12"><div class="text-center py-16 border ${bc} rounded-xl max-w-2xl mx-auto"><div class="${tc}">${ic.code}</div><h3 class="text-2xl font-bold ${tc} mb-4">No Projects Found</h3><p class="text-lg ${tc} opacity-70 mb-8">No projects match ${q ? `“${esc(searchTerm)}”` : 'your selected filters'}</p><button id="clear-filters" class="px-6 py-3 rounded-full text-sm font-medium border ${bc} ${tc} hover:bg-white hover:text-black transition-all duration-300">Clear filters</button></div></div>`;
       }
 
       c.innerHTML = `
-        <div class="text-center mb-16 pt-12"><p class="text-xl ${tc} opacity-90 max-w-3xl mx-auto"><span class="text-gold">Research Projects</span> showcasing AIR Lab innovations in AI, Robotics, and autonomy</p></div>
+        <div class="text-center mb-12 pt-12"><p class="text-xl ${tc} opacity-90 max-w-3xl mx-auto"><span class="text-gold">Research Projects</span> showcasing AIR Lab innovations in AI, Robotics, and autonomy</p></div>
         ${featuredHtml}
-        <div class="mb-10"><div class="flex flex-col md:flex-row gap-4 mb-8"><div class="flex-1"><label class="block text-sm font-medium ${tc} opacity-80 mb-2">Filter by Category</label><div class="flex flex-wrap gap-2">${catBtns}</div></div><div><label class="block text-sm font-medium ${tc} opacity-80 mb-2">Filter by Status</label><div class="flex flex-wrap gap-2">${statusBtns}</div></div></div><p class="text-sm ${tc} opacity-70">Showing ${filtered.length} of ${allProjects.length} projects</p></div>
+        <div class="sticky top-20 z-30 -mx-6 px-6 py-4 mb-10 ${bg}/95 backdrop-blur border-b ${bc}">
+          ${SHOW_SEARCH || SHOW_SORT ? `<div class="flex flex-col md:flex-row gap-3 md:items-center">
+            ${SHOW_SEARCH ? `<div class="relative flex-1">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 ${tc} opacity-60 pointer-events-none">${ic.search}</span>
+              <input id="project-search" type="search" value="${escAttr(searchTerm)}" placeholder="Search projects, technologies or people…" aria-label="Search projects"
+                class="w-full pl-11 pr-4 py-2.5 rounded-full bg-transparent border ${bc} ${tc} placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"/>
+            </div>` : ''}
+            ${SHOW_SORT ? `<select id="project-sort" aria-label="Sort projects" class="px-4 py-2.5 rounded-full border ${bc} ${bg} ${tc} text-sm focus:outline-none focus:border-blue-500 transition-colors">
+              <option value="featured"${sortBy === 'featured' ? ' selected' : ''}>Featured first</option>
+              <option value="year-desc"${sortBy === 'year-desc' ? ' selected' : ''}>Newest first</option>
+              <option value="year-asc"${sortBy === 'year-asc' ? ' selected' : ''}>Oldest first</option>
+              <option value="title"${sortBy === 'title' ? ' selected' : ''}>Title (A–Z)</option>
+            </select>` : ''}
+          </div>` : ''}
+          ${SHOW_CATEGORY_FILTER ? `<div class="flex flex-wrap gap-2 mt-3">${catBtns}</div>` : ''}
+          <div class="flex flex-wrap gap-2">${statusBtns}</div>
+          <div class="flex items-center justify-between gap-4 mt-3">
+            <p class="text-sm ${tc} opacity-70">Showing ${filtered.length} of ${allProjects.length} projects</p>
+            ${filtersOn ? `<button id="clear-filters-top" class="text-sm ${ac} underline underline-offset-4 hover:opacity-80">Clear all</button>` : ''}
+          </div>
+        </div>
         <div class="space-y-12">${listHtml}</div>
         <div class="mt-16 pt-12 border-t ${bc} text-center"><p class="text-sm ${tc} opacity-70">Ongoing research projects at AIR Lab, NC State University</p></div>`;
 
-      // Bind filter buttons
+      // Bind controls
       c.querySelectorAll('.filter-cat').forEach(b => b.addEventListener('click', () => { selectedCategory = b.dataset.cat; render(); }));
       c.querySelectorAll('.filter-status').forEach(b => b.addEventListener('click', () => { selectedStatus = b.dataset.status; render(); }));
-      const clr = document.getElementById('clear-filters');
-      if (clr) clr.addEventListener('click', () => { selectedCategory = 'all'; selectedStatus = 'all'; render(); });
+      c.querySelectorAll('.media-open').forEach(b => b.addEventListener('click', () => openMedia(b.dataset.pid, +b.dataset.idx)));
+      c.querySelectorAll('.desc-more').forEach(b => b.addEventListener('click', () => {
+        const p = b.previousElementSibling, open = p.classList.toggle('line-clamp-3');
+        b.textContent = open ? 'Read more' : 'Show less';
+      }));
+      c.querySelectorAll('.goto-project').forEach(b => b.addEventListener('click', () => {
+        const el = document.getElementById('project-item-' + b.dataset.goto);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }));
+      const clearAll = () => { selectedCategory = 'all'; selectedStatus = 'all'; searchTerm = ''; render(); };
+      const clr = document.getElementById('clear-filters'), clrTop = document.getElementById('clear-filters-top');
+      if (clr) clr.addEventListener('click', clearAll);
+      if (clrTop) clrTop.addEventListener('click', clearAll);
+      const sortSel = document.getElementById('project-sort');
+      if (sortSel) sortSel.addEventListener('change', () => { sortBy = sortSel.value; render(); });
+      const search = document.getElementById('project-search');
+      if (search) {
+        search.addEventListener('input', () => { searchTerm = search.value; searchFocus = true; render(); });
+        if (searchFocus) { search.focus(); const n = search.value.length; try { search.setSelectionRange(n, n); } catch (e) { } }
+      }
+      searchFocus = false;
     }
 
     async function init() {
       try {
         const { data, error } = await supabase.from('projects').select('id,title,subtitle,description,year,status,category,technologies,team,featured,images,videos,links').order('featured', { ascending: false }).order('id', { ascending: true });
         if (error) throw error;
-        allProjects = (data || []).map(p => ({ ...p, technologies: p.technologies || [], team: p.team || [], images: p.images || [], videos: p.videos || [], links: Array.isArray(p.links) ? p.links : [] }));
+        const arr = v => Array.isArray(v) ? v : (typeof v === 'string' && v.trim() ? v.split(/[\n,]+/).map(s => s.trim()).filter(Boolean) : []);
+        allProjects = (data || []).map(p => ({
+          ...p,
+          category: String(p.category || '').trim(), // data has stray whitespace / nulls
+          status: String(p.status || '').trim(),
+          technologies: arr(p.technologies), team: arr(p.team), images: arr(p.images), videos: arr(p.videos), links: normLinks(p.links)
+        }));
+        mediaGroups = {};
+        allProjects.forEach(p => { mediaGroups[p.id] = mediaOf(p); });
+        await pruneMedia();
         document.getElementById('loading-state').classList.add('hidden');
         document.getElementById('content').classList.remove('hidden');
         render();
